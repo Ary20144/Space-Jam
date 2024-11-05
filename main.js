@@ -418,14 +418,10 @@ function animate() {
     }
     
   sun.material.color.setRGB(red, green, blue);
-  sunLight.color.setRGB(red, green, blue);
-  sunLight.power = Math.pow(10, newRadius);
-
-    
-
-
+  //to test push and commit 
     // TODO: Update sun light
-
+    sunLight.color.setRGB(red, green, blue);
+    sunLight.power = Math.pow(10, newRadius);
     // TODO: Loop through all the orbiting planets and apply transformation to create animation effect
     planets.forEach(function (obj, index) {
         let planet = obj.mesh
