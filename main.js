@@ -95,7 +95,7 @@ scene.add(planet2);
 //TODO: Create Planet 3: Muddy Brown-Orange Planet with Ring
 geometry = new THREE.SphereGeometry(1, 16, 16);
 //this line is only for testing and the material used is wrong
-//
+// planet shaders need to be fixed, same as the gdsl codes
 //            -----------                    -----------
 //************************************************************
 //
@@ -449,7 +449,7 @@ function animate() {
         green = 1.0 * (2 - colorFactor); 
         blue = 1.0 * (2 - colorFactor);
     }
-    
+
   sun.material.color.setRGB(red, green, blue);
     // TODO: Update sun light
     sunLight.color.setRGB(red, green, blue);
