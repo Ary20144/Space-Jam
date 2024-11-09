@@ -81,7 +81,7 @@ scene.add(sunLight)
 geometry = new THREE.SphereGeometry(1, 8, 6);
 material = new THREE.MeshPhongMaterial({ color: 0x808080,flatShading: true });
 let planet1 = new THREE.Mesh(geometry,material);
-planet1.position.set(0,0,-5)
+planet1.position.set(3,0,0)
 scene.add(planet1);
 
 
@@ -89,27 +89,38 @@ scene.add(planet1);
 geometry = new THREE.SphereGeometry(1, 8, 8);
 material = new THREE.MeshPhongMaterial({ color: 0x80FFFF,ambient: 0.0, diffusivity: 0.5,specularity: 1.0, smoothness: 40.0   });
 let planet2 = new THREE.Mesh(geometry,material);
+planet1.position.set(0,0,0)
 scene.add(planet2);
 
-// TODO: Create Planet 3: Muddy Brown-Orange Planet with Ring
+//TODO: Create Planet 3: Muddy Brown-Orange Planet with Ring
 geometry = new THREE.SphereGeometry(1, 16, 16);
-material = new THREE.createPhongMaterial({color : 0xB08040, ambient: 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
+//this line is only for testing and the material used is wrong
+//
+//            -----------                    -----------
+//************************************************************
+//
+material = new THREE.MeshPhongMaterial({color : 0xB08040, ambient: 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
 let planet3 = new THREE.Mesh(geometry,material);
+planet1.position.set(0,0,0)
 scene.add(planet3);
 // Planet 3 Ring
-geometry = THREE.RingGeometry(1.5,2.5,64);
-let ring = null;
+geometry = new THREE.RingGeometry(1.5,2.5,64);
+material = new THREE.MeshPhongMaterial();
+let ring = new THREE.Mesh(geometry,material);
+planet3.add(ring);
 //needs complition
 
 // TODO: Create Planet 4: Soft Light Blue Planet
 geometry = new THREE.SphereGeometry(1,16,16);
-// material = new THREE.
-
-
-let planet4 = null;
-
+material = new THREE.MeshPhongMaterial({ color: 0x0000D1,ambient : 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
+let planet4 = new THREE.Mesh(geometry,material);
+planet1.position.set(0,0,0)
+scene.add(planet4)
 // TODO: Create Planet 4's Moon
-let moon = null;
+geometry = new THREE.SphereGeometry(1, 4, 2);
+material = new THREE.MeshBasicMaterial({ color: 0xC83CB9, flatShading: true });
+let moon = new THREE.Mesh(geometry,material);
+planet4.add(moon);
 
 // TODO: Store planets and moon in an array for easy access, 
 // e.g. { mesh: planet1, distance: 5, speed: 1 },
@@ -117,9 +128,10 @@ planets = [
      // TODO: Fill in the planet's data here
     { mesh: planet1, distance: 5, speed: 1 }, // Planet 1: Flat-shaded Gray Planet
     { mesh: planet2, distance: 8, speed: 5/8 }, // Planet 2: Swampy Green-Blue with Dynamic Shading
-    { mesh: planet3, distance: 11, speed: 5/11 }, // Planet 3: Muddy Brown-Orange Planet with Ring
-    { mesh: planet4, distance: 14, speed: 5/14 }, // Planet 4: Soft Light Blue Planet
-    { mesh: moon, distance: 1, speed: 0.1 }      // Moon of Planet 4
+    { mesh: planet3, distance: 11, speed: 5/11},
+    { mesh: planet4, distance: 14, speed: 5/14}
+    
+         // Moon of Planet 4
 ];
 
 // Handle window resize
@@ -442,6 +454,11 @@ function animate() {
     // TODO: Update sun light
     sunLight.color.setRGB(red, green, blue);
     sunLight.power = Math.pow(10, newRadius);
+
+
+
+
+
     // TODO: Loop through all the orbiting planets and apply transformation to create animation effect
     planets.forEach(function (obj, index) {
         let planet = obj.mesh;
@@ -449,22 +466,35 @@ function animate() {
         let speed = obj.speed;
         
         let model_transform = new THREE.Matrix4(); 
-        
+        let moon_transform = new THREE.Matrix4();
         // TODO: Implement the model transformations for the planets
         // Hint: Some of the planets have the same set of transformation matrices, but for some you have to apply some additional transformation to make it work (e.g. planet4's moon, planet3's wobbling effect).
         
-        // Apply rotation based on the planet's speed
-        let rot = rotationMatrixY(speed);
-        model_transform.multiplyMatrices(rot, model_transform);
-        
-        // Apply translation based on the planet's distance from the sun
         let translation = translationMatrix(distance, 0, 0);
-        model_transform.multiplyMatrices(translation, model_transform);
+        let rotation = rotationMatrixY(speed * time);
+        model_transform.multiply(rotation);
+        model_transform.multiply(translation);
+        planet.matrix.copy(model_transform);
         
-
+        // Implement moon's orbit around Planet 4
+        if (index === 3) { // Planet 4
+            let moonDistance = 2.5;
+            let moonSpeed = 1; // Adjust speed as needed
+            let moonTranslation = translationMatrix(moonDistance, 0, 0);
+            let moonRotation = rotationMatrixY(moonSpeed * time);
+            moon_transform.multiply(moonRotation);
+            moon_transform.multiply(moonTranslation);
+            moon.matrix.copy(moon_transform);
+            moon.matrixAutoUpdate = false;
+        }
 
         planet.matrix.copy(model_transform);
+        
+
+
+
         planet.matrixAutoUpdate = false;
+
         
         // Camera attachment logic here, when certain planet is being attached, we want the camera to be following the planet by having the same transformation as the planet itself. No need to make changes.
         if (attachedObject === index){
@@ -505,7 +535,7 @@ function animate() {
 
     // TODO: Update customized planet material uniforms
     // e.g. updatePlanetMaterialUniforms(planets[1].mesh);
-    
+    //updatePlanetMaterialUniforms()
 
     // Update controls only when the camera is not attached
     if (controls.enabled) {
