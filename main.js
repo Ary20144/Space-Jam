@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { diffuseColor } from 'three/webgpu';
+import { distance } from 'three/webgpu';
 
 const scene = new THREE.Scene();
 
@@ -79,46 +81,66 @@ scene.add(sunLight)
 // Create orbiting planets
 // TODO: Create Planet 1: Flat-shaded Gray Planet
 geometry = new THREE.SphereGeometry(1, 8, 6);
-material = new THREE.MeshPhongMaterial({ color: 0x808080,flatShading: true });
+material = new THREE.MeshPhongMaterial({ 
+    color: 0x808080,
+    flatShading: true });
 let planet1 = new THREE.Mesh(geometry,material);
-planet1.position.set(3,0,0)
+planet1.position.set(0,0,0)
 scene.add(planet1);
 
 
 // TODO: Create Planet 2: Swampy Green-Blue with Dynamic Shading
 geometry = new THREE.SphereGeometry(1, 8, 8);
-material = new THREE.MeshPhongMaterial({ color: 0x80FFFF,ambient: 0.0, diffusivity: 0.5,specularity: 1.0, smoothness: 40.0   });
+material = new THREE.MeshPhongMaterial({color : 0x80FFFF, ambient: 0.0, diffusivity: 0.5, specularity: 1.0, smoothness: 40.0} );
+
+
 let planet2 = new THREE.Mesh(geometry,material);
-planet1.position.set(0,0,0)
+planet2.material = createPhongMaterial({color : 0x80FFFF, 
+    ambient: 0.0, 
+    diffusivity: 0.5, 
+    specularity: 1.0, 
+    smoothness: 40.0});
+planet2.position.set(0,0,0)
 scene.add(planet2);
 
 //TODO: Create Planet 3: Muddy Brown-Orange Planet with Ring
 geometry = new THREE.SphereGeometry(1, 16, 16);
-//this line is only for testing and the material used is wrong
-// planet shaders need to be fixed, same as the gdsl codes
-//            -----------                    -----------
-//************************************************************
-//
-material = new THREE.MeshPhongMaterial({color : 0xB08040, ambient: 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
+material = new THREE.MeshPhongMaterial({
+    color : 0xB08040, 
+    ambient: 0.0, 
+    diffusivity: 1.0, 
+    specularity: 1.0, 
+    smoothness: 100.0});
 let planet3 = new THREE.Mesh(geometry,material);
-planet1.position.set(0,0,0)
+planet3.material = createPhongMaterial({color : 0xB08040, 
+    ambient: 0.0, 
+    diffusivity: 1.0, 
+    specularity: 1.0, 
+    smoothness: 100.0});
+planet3.position.set(0,0,0);
 scene.add(planet3);
 // Planet 3 Ring
 geometry = new THREE.RingGeometry(1.5,2.5,64);
-material = new THREE.MeshPhongMaterial();
+material = new THREE.ShaderMaterial();
 let ring = new THREE.Mesh(geometry,material);
+ring.material = createRingMaterial({ color: 0xB08040});
 planet3.add(ring);
 //needs complition
 
 // TODO: Create Planet 4: Soft Light Blue Planet
 geometry = new THREE.SphereGeometry(1,16,16);
-material = new THREE.MeshPhongMaterial({ color: 0x0000D1,ambient : 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
+material = new THREE.MeshPhongMaterial({ 
+    color: 0x0000D1,ambient : 0.0, 
+    diffusivity: 1.0, 
+    specularity: 1.0, 
+    smoothness: 100.0});
+
 let planet4 = new THREE.Mesh(geometry,material);
-planet1.position.set(0,0,0)
-scene.add(planet4)
+planet4.material = createPhongMaterial({ color: 0x0000D1, ambient: 0.0, diffusivity: 1.0, specularity: 1.0, smoothness: 100.0});
+scene.add(planet4);
 // TODO: Create Planet 4's Moon
 geometry = new THREE.SphereGeometry(1, 4, 2);
-material = new THREE.MeshBasicMaterial({ color: 0xC83CB9, flatShading: true });
+material = new THREE.MeshPhongMaterial({ color: 0xC83CB9, flatShading: true });
 let moon = new THREE.Mesh(geometry,material);
 planet4.add(moon);
 
@@ -132,6 +154,7 @@ planets = [
     { mesh: planet4, distance: 14, speed: 5/14}
     
          // Moon of Planet 4
+    // I didn't use moon here and just added it as an sub object to planet 4
 ];
 
 // Handle window resize
@@ -143,21 +166,68 @@ document.addEventListener('keydown', onKeyDown, false);
 animate();
 
 // TODO: Implement the Gouraud Shader for Planet 2
-function createGouraudMaterial(materialProperties) {    
-    // TODO: Implement the Vertex Shader in GLSL
-    let vertexShader = ``;
+function createGouraudMaterial(materialProperties) {
+    const numLights = 1;
+    // Vertex Shader
+    let vertexShader = `
+        precision mediump float;
+        const int N_LIGHTS = ${numLights};
+        uniform float ambient, diffusivity, specularity, smoothness;
+        uniform vec4 light_positions_or_vectors[N_LIGHTS];
+        uniform vec4 light_colors[N_LIGHTS];
+        uniform float light_attenuation_factors[N_LIGHTS];
+        uniform vec4 shape_color;
+        uniform vec3 squared_scale;
+        uniform vec3 camera_center;
+        varying vec3 VERTEX_COLOR;
 
-    // TODO: Implement the Fragment Shader in GLSL
-    let fragmentShader = ``;
+        vec3 gouraud_model_lights(vec3 N, vec3 vertex_worldspace) {
+            vec3 E = normalize(camera_center - vertex_worldspace);
+            vec3 result = vec3(ambient); // Start with ambient light
+            for(int i = 0; i < N_LIGHTS; i++) {
+                vec3 surface_to_light_vector = light_positions_or_vectors[i].xyz - 
+                    light_positions_or_vectors[i].w * vertex_worldspace;
+                float distance_to_light = length(surface_to_light_vector);
+                vec3 L = normalize(surface_to_light_vector);
+                vec3 H = normalize(L + E);
+                float diffuse = max(dot(N, L), 0.0);
+                float specular = pow(max(dot(N, H), 0.0), smoothness);
+                float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light);
+                vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
+                                        + light_colors[i].xyz * specularity * specular;
+                result += attenuation * light_contribution;
+            }
+            return result;
+        }
+
+        uniform mat4 model_transform;
+        uniform mat4 projection_camera_model_transform;
+
+        void main() {
+            vec3 N = normalize(mat3(model_transform) * normal / squared_scale);
+            vec3 vertex_worldspace = (model_transform * vec4(position, 1.0)).xyz;
+            VERTEX_COLOR = gouraud_model_lights(normalize(N), vertex_worldspace);
+            gl_Position = projection_camera_model_transform * vec4(position, 1.0);
+        }
+    `;
+    // Fragment Shader
+    let fragmentShader = `
+        precision mediump float;
+        varying vec3 VERTEX_COLOR;
+        uniform vec4 shape_color;
+
+        void main() {
+            gl_FragColor = vec4(VERTEX_COLOR * shape_color.xyz, shape_color.w);
+        }
+    `;
 
     let shape_color = new THREE.Vector4(
-        materialProperties.color.r, 
-        materialProperties.color.g, 
-        materialProperties.color.b,
+        (materialProperties.color >> 16 & 255) / 255,
+        (materialProperties.color >> 8 & 255) / 255,
+        (materialProperties.color & 255) / 255,
         1.0
     );
-    
-    // Uniforms
+    // Prepare uniforms
     const uniforms = {
         ambient: { value: materialProperties.ambient },
         diffusivity: { value: materialProperties.diffusivity },
@@ -210,8 +280,8 @@ function createPhongMaterial(materialProperties) {
                 float diffuse = max(dot(N, L), 0.0);
                 float specular = pow(max(dot(N, H), 0.0), smoothness);
                 float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light);
-                vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
-                                        + light_colors[i].xyz * specularity * specular;
+                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz
+                                        + specularity * specular);
                 result += attenuation * light_contribution;
             }
             return result;
@@ -251,8 +321,8 @@ function createPhongMaterial(materialProperties) {
                 float diffuse = max(dot(N, L), 0.0);
                 float specular = pow(max(dot(N, H), 0.0), smoothness);
                 float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light);
-                vec3 light_contribution = shape_color.xyz * light_colors[i].xyz * diffusivity * diffuse
-                                        + light_colors[i].xyz * specularity * specular;
+                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz
+                                        + specularity * specular);
                 result += attenuation * light_contribution;
             }
             return result;
@@ -268,9 +338,9 @@ function createPhongMaterial(materialProperties) {
     `;
 
     let shape_color = new THREE.Vector4(
-        materialProperties.color.r, 
-        materialProperties.color.g, 
-        materialProperties.color.b, 
+        (materialProperties.color >> 16 & 255) / 255,
+        (materialProperties.color >> 8 & 255) / 255,
+        (materialProperties.color & 255) / 255,
         1.0
     );
     // Prepare uniforms
@@ -297,6 +367,8 @@ function createPhongMaterial(materialProperties) {
     });
 }
 
+
+
 // TODO: Finish the custom shader for planet 3's ring with sinusoidal brightness variation
 function createRingMaterial(materialProperties) {
     let vertexShader = `
@@ -307,20 +379,34 @@ function createRingMaterial(materialProperties) {
         }
     `;
 
-    // TODO: Finish the fragment shader to create the brightness variation with sinine finction
     let fragmentShader = `
         uniform vec3 color;
         varying vec3 vPosition;
 
         void main() {
+            // Calculate distance from the center in the XY plane
+            float distance = length(vPosition.xy);
+            
+            // Adjust the thickness and spacing of the rings
+            float ringFrequency = 15.0; // Increase for more rings
+            float ringThickness = 0.5;  // Adjust for thicker or thinner rings
+            float brightness = smoothstep(ringThickness, ringThickness + 0.02, abs(sin(distance * ringFrequency)));
+            
+            // Set the final color with the brightness factor
+            vec3 finalColor = color * brightness;
 
+            gl_FragColor = vec4(finalColor, 1.0);
         }
     `;
 
-    // TODO: Fill in the values to be passed in to create the custom shader
+    // Create the custom shader material
     return new THREE.ShaderMaterial({
-        uniforms: {color: null},
-
+        uniforms: {
+            color: { value: new THREE.Color(materialProperties.color || 0xffffff) },
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        side: THREE.DoubleSide
     });
 }
 
@@ -450,7 +536,8 @@ function animate() {
         blue = 1.0 * (2 - colorFactor);
     }
 
-  sun.material.color.setRGB(red, green, blue);
+
+    sun.material.color.setRGB(red, green, blue);
     // TODO: Update sun light
     sunLight.color.setRGB(red, green, blue);
     sunLight.power = Math.pow(10, newRadius);
@@ -487,6 +574,8 @@ function animate() {
             moon.matrix.copy(moon_transform);
             moon.matrixAutoUpdate = false;
         }
+
+        
 
         planet.matrix.copy(model_transform);
         
@@ -530,12 +619,33 @@ function animate() {
         }
     });
     
-    // TODO: Apply Gouraud/Phong shading alternatively to Planet 2
+    // TODO: Apply Gouraud/Phong shading alternatively to Planet 2 based on time
+     time = clock.getElapsedTime();
+    if (Math.floor(time) % 2 === 0) {
+        planet2.material = createGouraudMaterial({
+            color: 0x80FFFF,
+            ambient: 0.0,
+            diffusivity: 0.5,
+            specularity: 1.0,
+            smoothness: 40.0
+        });
+    } else {
+        planet2.material = createPhongMaterial({
+            color: 0x80FFFF,
+            ambient: 0.0,
+            diffusivity: 0.5,
+            specularity: 1.0,
+            smoothness: 40.0
+        });
+    }
     
 
     // TODO: Update customized planet material uniforms
     // e.g. updatePlanetMaterialUniforms(planets[1].mesh);
-    //updatePlanetMaterialUniforms()
+    
+    updatePlanetMaterialUniforms(planets[1].mesh);
+    updatePlanetMaterialUniforms(planets[2].mesh);
+    updatePlanetMaterialUniforms(planets[3].mesh);
 
     // Update controls only when the camera is not attached
     if (controls.enabled) {
