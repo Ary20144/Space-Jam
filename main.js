@@ -142,7 +142,10 @@ scene.add(planet4);
 geometry = new THREE.SphereGeometry(1, 4, 2);
 material = new THREE.MeshPhongMaterial({ color: 0xC83CB9, flatShading: true });
 let moon = new THREE.Mesh(geometry,material);
+moon.position.set(0,0,0);
 planet4.add(moon);
+scene.add(moon);
+
 
 // TODO: Store planets and moon in an array for easy access, 
 // e.g. { mesh: planet1, distance: 5, speed: 1 },
@@ -151,7 +154,8 @@ planets = [
     { mesh: planet1, distance: 5, speed: 1 }, // Planet 1: Flat-shaded Gray Planet
     { mesh: planet2, distance: 8, speed: 5/8 }, // Planet 2: Swampy Green-Blue with Dynamic Shading
     { mesh: planet3, distance: 11, speed: 5/11},
-    { mesh: planet4, distance: 14, speed: 5/14}
+    { mesh: planet4, distance: 14, speed: 5/14},
+    { mesh: moon, distance: 14, speed: 5/14}
     
          // Moon of Planet 4
     // I didn't use moon here and just added it as an sub object to planet 4
@@ -384,15 +388,12 @@ function createRingMaterial(materialProperties) {
         varying vec3 vPosition;
 
         void main() {
-            // Calculate distance from the center in the XY plane
-            float distance = length(vPosition.xy);
             
-            // Adjust the thickness and spacing of the rings
-            float ringFrequency = 15.0; // Increase for more rings
-            float ringThickness = 0.5;  // Adjust for thicker or thinner rings
+            float distance = length(vPosition.xy);
+            float ringFrequency = 15.0; 
+            float ringThickness = 0.5;  
             float brightness = smoothstep(ringThickness, ringThickness + 0.02, abs(sin(distance * ringFrequency)));
             
-            // Set the final color with the brightness factor
             vec3 finalColor = color * brightness;
 
             gl_FragColor = vec4(finalColor, 1.0);
@@ -505,9 +506,27 @@ function onWindowResize() {
 function onKeyDown(event) {
     switch (event.keyCode) {
         case 48: // '0' key - Detach camera
+            attachedObject = null;
+            camera.position.set(0, 10, 20);
+            camera.lookAt(0, 0, 0);
             break;
-        
-        //...
+        case 49: // '1' key - Attach camera to Planet 1
+            attachedObject = 0; // Index of planet1
+            break;
+        case 50: // '2' key - Attach camera to Planet 2
+            attachedObject = 1; // Index of planet2
+            break;
+        case 51: // '3' key - Attach camera to Planet 3
+            attachedObject = 2; // Index of planet3
+            break;
+        case 52: // '4' key - Attach camera to Planet 4
+            attachedObject = 3; // Index of planet4
+            break;
+        case 53: // '5' key - Attach camera to the Moon
+            attachedObject = 4; // Use a unique identifier for the moon
+            break;
+        default:
+            break;
     }
 }
 
@@ -548,6 +567,7 @@ function animate() {
 
     // TODO: Loop through all the orbiting planets and apply transformation to create animation effect
     planets.forEach(function (obj, index) {
+        
         let planet = obj.mesh;
         let distance = obj.distance;
         let speed = obj.speed;
@@ -556,28 +576,26 @@ function animate() {
         let moon_transform = new THREE.Matrix4();
         // TODO: Implement the model transformations for the planets
         // Hint: Some of the planets have the same set of transformation matrices, but for some you have to apply some additional transformation to make it work (e.g. planet4's moon, planet3's wobbling effect).
-        
+        if (!(index === 4)) {
         let translation = translationMatrix(distance, 0, 0);
         let rotation = rotationMatrixY(speed * time);
         model_transform.multiply(rotation);
         model_transform.multiply(translation);
         planet.matrix.copy(model_transform);
-        
+        }
         // Implement moon's orbit around Planet 4
         if (index === 3) { // Planet 4
             let moonDistance = 2.5;
-            let moonSpeed = 1; // Adjust speed as needed
+            let moonSpeed = 1; 
             let moonTranslation = translationMatrix(moonDistance, 0, 0);
             let moonRotation = rotationMatrixY(moonSpeed * time);
+            moon_transform.identity();
             moon_transform.multiply(moonRotation);
             moon_transform.multiply(moonTranslation);
+            moon_transform.premultiply(planet.matrix);
             moon.matrix.copy(moon_transform);
             moon.matrixAutoUpdate = false;
         }
-
-        
-
-        planet.matrix.copy(model_transform);
         
 
 
@@ -612,7 +630,9 @@ function animate() {
 
         // TODO: If camera is detached, slowly lerp the camera back to the original position and look at the origin
         else if (attachedObject === null) {
-
+            let defaultPosition = new THREE.Vector3(0, 10, 20);
+            camera.position.lerp(defaultPosition, 0.1);
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
 
             // Enable controls
             controls.enabled = true;
