@@ -4,7 +4,7 @@ import { diffuseColor } from 'three/webgpu';
 import { distance } from 'three/webgpu';
 
 const scene = new THREE.Scene();
-
+112
 const camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 );
 camera.position.set(0, 10, 20);
 camera.lookAt(0, 0, 0);
@@ -61,11 +61,7 @@ let attachedObject = null;
 let blendingFactor = 0.1;
 // Create additional variables as needed here
 
-// Starter code sphere, feel free to delete it afterwards
-// let geometry = new THREE.SphereGeometry(1, 32, 32);
-// let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-// let sphere = new THREE.Mesh(geometry, material);
-// scene.add(sphere);
+
 
 // TODO: Create the sun
 let geometry = new THREE.SphereGeometry(1, 32, 32);
@@ -284,8 +280,7 @@ function createPhongMaterial(materialProperties) {
                 float diffuse = max(dot(N, L), 0.0);
                 float specular = pow(max(dot(N, H), 0.0), smoothness);
                 float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light);
-                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz
-                                        + specularity * specular);
+                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz + specularity * specular);
                 result += attenuation * light_contribution;
             }
             return result;
@@ -325,8 +320,7 @@ function createPhongMaterial(materialProperties) {
                 float diffuse = max(dot(N, L), 0.0);
                 float specular = pow(max(dot(N, H), 0.0), smoothness);
                 float attenuation = 1.0 / (1.0 + light_attenuation_factors[i] * distance_to_light * distance_to_light);
-                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz
-                                        + specularity * specular);
+                vec3 light_contribution = light_colors[i].xyz * (diffusivity * diffuse * shape_color.xyz + specularity * specular);
                 result += attenuation * light_contribution;
             }
             return result;
