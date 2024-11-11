@@ -507,8 +507,6 @@ function onKeyDown(event) {
     switch (event.keyCode) {
         case 48: // '0' key - Detach camera
             attachedObject = null;
-            camera.position.set(0, 10, 20);
-            camera.lookAt(0, 0, 0);
             break;
         case 49: // '1' key - Attach camera to Planet 1
             attachedObject = 0; // Index of planet1
@@ -560,11 +558,6 @@ function animate() {
     // TODO: Update sun light
     sunLight.color.setRGB(red, green, blue);
     sunLight.power = Math.pow(10, newRadius);
-
-
-
-
-
     // TODO: Loop through all the orbiting planets and apply transformation to create animation effect
     planets.forEach(function (obj, index) {
         
@@ -582,6 +575,8 @@ function animate() {
         model_transform.multiply(rotation);
         model_transform.multiply(translation);
         planet.matrix.copy(model_transform);
+        // model_transform.multiplyMatrices(rotation, translation);
+
         }
         // Implement moon's orbit around Planet 4
         if (index === 3) { // Planet 4
@@ -589,15 +584,31 @@ function animate() {
             let moonSpeed = 1; 
             let moonTranslation = translationMatrix(moonDistance, 0, 0);
             let moonRotation = rotationMatrixY(moonSpeed * time);
-            moon_transform.identity();
+            
+            moon_transform.multiply(model_transform);
             moon_transform.multiply(moonRotation);
             moon_transform.multiply(moonTranslation);
-            moon_transform.premultiply(planet.matrix);
+
+            // moon_transform.multiplyMatrices(moonRotation, moonTranslation);
+            // model_transform.multiply(model_transform);
+            
+        
             moon.matrix.copy(moon_transform);
             moon.matrixAutoUpdate = false;
         }
-        
-
+        //rotate the ring 45 degrees around x axis
+        if (index === 2) {
+            let ringRotation1 = rotationMatrixX(time*Math.PI/8);
+            let ringRotation2 = rotationMatrixZ(time*Math.PI/8);
+            let ringTranslation = translationMatrix(0,0,0);
+            let ringTransform = new THREE.Matrix4();
+            ringTransform.multiply(ringRotation1);
+            ringTransform.multiply(ringRotation2);
+            ringTransform.multiply(ringTranslation);
+            ring.matrix.copy(ringTransform);
+            ring.matrixAutoUpdate = false;
+        }
+       
 
 
         planet.matrixAutoUpdate = false;
