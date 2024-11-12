@@ -4,7 +4,6 @@ import { diffuseColor } from 'three/webgpu';
 import { distance } from 'three/webgpu';
 
 const scene = new THREE.Scene();
-112
 const camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 );
 camera.position.set(0, 10, 20);
 camera.lookAt(0, 0, 0);
@@ -61,7 +60,7 @@ let attachedObject = null;
 let blendingFactor = 0.1;
 // Create additional variables as needed here
 
-
+//test commit
 
 // TODO: Create the sun
 let geometry = new THREE.SphereGeometry(1, 32, 32);
